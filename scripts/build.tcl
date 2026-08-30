@@ -10,13 +10,13 @@ create_project $project_name $build_dir -part xc7z020clg400-1
 add_files [glob ../src/*.sv]
 
 # IP files (.xci files)
-# add_files [glob ../ip/*/*.xci]
+add_files [glob ../ip/*/*.xci]
 
 # Constraints
 add_files -fileset constrs_1 [glob ../constraints/*.xdc]
 
 # Generate the underlying files for the Xilinx IP
-# generate_target all [get_ips]
+generate_target all [get_ips]
 
 # Set the top module (replace with your actual top module name)
 set_property top top [current_fileset]
