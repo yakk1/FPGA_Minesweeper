@@ -1,0 +1,11 @@
+build/
+*.jou
+*.log
+*.str
+.Xil/
+
+__pycache__/
+*__pycache__
+.venv/
+dist/
+sim_build/
