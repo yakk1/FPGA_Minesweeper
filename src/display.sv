@@ -45,30 +45,31 @@ logic signed [CORDW-1:0] x, y;
 logic signed [CORDW-1:0] x_next, y_next;
 logic hsync_next, vsync_next, de_next, line_next, frame_next;
 
-//Calculate all signals on the next clock cycle
+// Calculate all signals on the next clock cycle
+// This will ensure all signals are calculated for the same clock cycle
 always_comb begin
 
-    //Coordinate count
+    // Coordinate count
     if (x == HA_END) begin
         x_next = H_STA;
         y_next = (y == VA_END) ? V_STA : y + 1'b1;    // On last line, wrap back to first line
     end else begin
-        x_next = x + 1'b1;                         // Otherwise, advance x
+        x_next = x + 1'b1;                         // Otherwise, advance x and y remains the same
         y_next = y;
     end
 
-    //Sync signals
+    // Sync signals - calculated based on the next set of coordinates
     hsync_next = (H_POL) ? (x_next >= HS_STA && x_next < HS_END) : ~(x_next >= HS_STA && x_next < HS_END);
     vsync_next = (V_POL) ? (y_next >= VS_STA && y_next < VS_END) : ~(y_next >= VS_STA && y_next < VS_END);
 
-    //Control signals
+    // Control signals - calculated based on the next set of coordinates
     de_next = (x_next >= HA_STA && y_next > VA_STA);      // de high in active region
     line_next = (x_next == H_STA);                   // line high at start of x line
     frame_next = (x_next == H_STA && y_next == V_STA);    // frame high at start of first line
 
 end
 
-//Register outputs
+// Register outputs
 always_ff @(posedge clk_pix) begin
     if (rst_pix) begin
         //if reset then we set default values
@@ -82,11 +83,12 @@ always_ff @(posedge clk_pix) begin
         line <= 1'b0;
         frame <= 1'b0;
     end else begin
-        // Update pixel location counter
+        // Update coordinates
         x <= x_next;
         y <= y_next;
 
-        // Outputs
+        // Module outputs
+        // Everything was calculated based on x,y next variables so it is all aligned to the same clock cycle
         sx <= x_next;
         sy <= y_next;
         de <= de_next;
@@ -97,7 +99,7 @@ always_ff @(posedge clk_pix) begin
     end
 end
 
-
+//Previous code iteration below, contains primarily sequential logic
 
 // Generate horizontal and vertical sync
 // Note the polarity, if polarity is 0, then sync = 0 indicates we are in sync region
