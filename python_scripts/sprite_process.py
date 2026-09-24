@@ -2,6 +2,8 @@ from pathlib import Path
 import sys
 from PIL import Image
 
+# This script is AI generated
+
 # ==============================================================================
 # Configuration: Sprite Dimensions and Sheet Definitions
 # ==============================================================================
