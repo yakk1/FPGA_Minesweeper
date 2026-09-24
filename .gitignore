@@ -1,6 +1,7 @@
 build/
 *.jou
 *.log
+*.logfile
 *.str
 .Xil/
 
