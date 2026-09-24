@@ -1,7 +1,7 @@
 //Display timing generator module
 
-module display #(
-    parameter CORDW = 16,      // Signed coordinate width (bits)
+module display_timer #(
+    parameter CORDW = 11,      // Signed coordinate width (bits)
     parameter H_RES = 640,      // Horizontal resolution (pixels)
     parameter V_RES = 480,     // Vertical resolution (pixels)
     parameter H_FP = 16,       // Horizontal front porch
@@ -63,8 +63,8 @@ always_comb begin
     vsync_next = (V_POL) ? (y_next >= VS_STA && y_next < VS_END) : ~(y_next >= VS_STA && y_next < VS_END);
 
     // Control signals - calculated based on the next set of coordinates
-    de_next = (x_next >= HA_STA && y_next > VA_STA);      // de high in active region
-    line_next = (x_next == H_STA);                   // line high at start of x line
+    de_next = (x_next >= HA_STA && y_next >= VA_STA);      // de high in active region
+    line_next = (x_next == H_STA);                        // line high at start of x line
     frame_next = (x_next == H_STA && y_next == V_STA);    // frame high at start of first line
 
 end
@@ -75,8 +75,8 @@ always_ff @(posedge clk_pix) begin
         //if reset then we set default values
         hsync <= (H_POL) ? 1'b0 : 1'b1;
         vsync <= (V_POL) ? 1'b0 : 1'b1;
-        x <= HS_STA;
-        y <= HS_END;
+        x <= H_STA;
+        y <= V_STA;
         sx <= H_STA;
         sy <= V_STA;
         de <= 1'b0;
@@ -93,7 +93,7 @@ always_ff @(posedge clk_pix) begin
         sy <= y_next;
         de <= de_next;
         line <= line_next;
-        frame_next <= frame_next;
+        frame <= frame_next;
         hsync <= hsync_next;
         vsync <= vsync_next;
     end

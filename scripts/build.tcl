@@ -4,13 +4,13 @@ set build_dir "../build"
 
 # Create the project in the build directory
 # Part number for arty z7-20
-create_project $project_name $build_dir -part xc7z020clg400-1
+create_project -force $project_name $build_dir -part xc7z020clg400-1
 
 # Source files
 add_files [glob ../src/*.sv]
 
 # IP files (.xci files)
-add_files [glob ../ip/*/*.xci]
+add_files [glob ../ip/*.xci]
 
 # Constraints
 add_files -fileset constrs_1 [glob ../constraints/*.xdc]
