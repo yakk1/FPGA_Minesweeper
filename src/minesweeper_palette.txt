@@ -1,8 +1,0 @@
-// Classic Minesweeper Palette
-// 16 Colours with 4 bits per channel
-// Standard Windows VGA 16-color palette
-
-// 4-bit per channel version for classic Minesweeper
-// (11 used colors + 5 unused standard VGA colors)
-
-000 800 080 880 008 808 088 CCC 888 F00 0F0 FF0 00F F0F 0FF FFF
