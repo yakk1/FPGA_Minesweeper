@@ -12,8 +12,8 @@ import minesweeper_pkg::*;
     input logic we_a,
     input gridx_coord_t coord_x_a,
     input gridy_coord_t coord_y_a,
-    input tile_t din_a,
-    output tile_t dout_a,
+    input tile_id_t din_a,
+    output tile_id_t dout_a,
 
     //PORT B (VGA)
     input logic clk_b,
@@ -21,13 +21,12 @@ import minesweeper_pkg::*;
     input gridx_coord_t coord_x_b,
     input gridy_coord_t coord_y_b,
     //input tile_t din_b,
-    output tile_t dout_b
+    output tile_id_t dout_b
 );
 
-localparam N_TILES = BOARD_HEIGHT*BOARD_WIDTH;
 localparam ADDR_BITS = $clog2(N_TILES);
 
-tile_t mem [0:N_TILES-1];
+tile_id_t mem [0:N_TILES-1];
 logic [ADDR_BITS-1:0] porta_addr;
 logic [ADDR_BITS-1:0] portb_addr;
 
@@ -73,7 +72,7 @@ always_ff @(posedge clk_a) begin
     dout_a <= mem[porta_addr];
 end
 
-//Port B
+//Port B (Read Only)
 always_ff @(posedge clk_b) begin
     //if (we_b) begin
     //    mem[portb_addr] <= din_b;

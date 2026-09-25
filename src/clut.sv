@@ -9,7 +9,7 @@ module clut #(
     input logic [COLOUR_IDX_W-1:0] w_addr,     //Write address
     input logic [COLOUR_W-1:0] w_value,        //Write value
     input logic we,                            //Write enable (high means write)
-    output logic [COLOUR_W-1:0] dout            //Read value
+    output logic [COLOUR_W-1:0] dout           //Read value
 );
 
 logic [COLOUR_W-1:0] clut_mem [0:2**COLOUR_IDX_W-1];
@@ -21,7 +21,6 @@ initial begin
     end
 end
 
-//Write
 always_ff @(posedge clk) begin
     if (we) begin
         clut_mem[w_addr] <= w_value;

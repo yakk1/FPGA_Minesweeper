@@ -42,13 +42,22 @@ display_timer disp_gen (
 //Read tile from BRAM
 //We must divide the coordinate by 16 (remove lower 4 bits)
 //Lookup tile in advance, to account for BRAM read latencies
-
 localparam DISP_LATENCY = 3;
 
-tile_t read_tile;
+tile_id_t read_tile;
 screen_coord_t sx_board_adjusted;
-assign sx_board_adjusted = $signed(sx + DISP_LATENCY);
+screen_coord_t sy_board_adjusted;
+logic grid;
 
+// Calculate relative board position, determine if current coordinates renders a grid
+// May be flag later for controller (master renderer)
+assign grid = (sx >= GRID_OFFSET_X && sx < (TILE_WIDTH * BOARD_WIDTH + GRID_OFFSET_X) && sy >= GRID_OFFSET_Y && sy < (TILE_HEIGHT * BOARD_HEIGHT + GRID_OFFSET_Y));  
+
+// Calculate relative board coordinates, lookup x in advance due to BRAM read latency
+assign sx_board_adjusted = $signed(sx + DISP_LATENCY - GRID_OFFSET_X);
+assign sy_board_adjusted = $signed(sy - GRID_OFFSET_Y);
+
+// Instanciate board of tiles
 board board_memory (
     .clk_a(0),
     .we_a(0),
@@ -58,27 +67,41 @@ board board_memory (
     .dout_a(),
     .clk_b(clk_pix),
     .coord_x_b(sx_board_adjusted[8:4]),
-    .coord_y_b(sy[8:4]),
+    .coord_y_b(sy_board_adjusted[8:4]),
     .dout_b(read_tile)
 );
 
 screen_coord_t sx_sprite_adjusted;
 logic [11:0] sprite_address;
 colour_t out_colour;
+tile_id_t sprite_id;
 
-sprite_t sprite_id;
-
-assign sprite_id = get_tile_sprite_id(read_tile);                                          //Combinationally calculate sprite ID
+assign sprite_id = get_tile_sprite_id(read_tile);         //Combinationally calculate tile sprite ID
 assign sx_sprite_adjusted = sx + $signed(DISP_LATENCY - 1);
 
-//Get sprite from the ROM 
-sprite_rom sprite_memory (
+//Sprite address equals spriteID * (16^2) + sprite y pos * 16 + x position
+assign sprite_address = {sprite_id, sy[3:0], sx_sprite_adjusted[3:0]};
+
+//Instanciate tile sprite ROM
+sprite_rom #(
+    .SPRITE_W(TILE_WIDTH),
+    .SPRITE_H(TILE_HEIGHT),
+    .N_SPRITES(N_TILES),
+    .ADDR_W(12)
+)
+tile_sprite_memory (
     .clk(clk_pix),
-    .sprite_id(sprite_id),
-    .sprite_x(sx_sprite_adjusted[3:0]),
-    .sprite_y(sy[3:0]),
+    .addr(sprite_address),
     .colour(out_colour)
 );
+
+//Paint colour
+//Flags
+//Grid - on the grid (use grid colour)
+//Face - on the face (use face colour)
+//Background - use background colour
+//Mouse - use mouse colour
+//Priority encoder - highest priority first (where transparent render the second most )
 
 logic [11:0] pixel_colour;
 
@@ -91,27 +114,6 @@ clut clut_table (
     .dout(pixel_colour)   
 );
 
-//Pixel colour should be aligned to the current sx, sy due to the x coordinate latency compensation
-//We lookup 3 clock cycles in advance (1 for board, 1 for sprite, 1 for colour)
-//Drive display combinationally
-
-//Are we within the grid? (for rendering background) (currently static, but grid position will be a parameter)
-logic grid;
-assign grid = (sx >= 0 && sx < 16 * BOARD_WIDTH && sy >= 0 && sy < 16 * BOARD_HEIGHT);  
-
-/*
-//Render the text
-logic picture;
-logic text_active;
-logic[4:0] local_x;  //20 columns = 5 bits
-logic[3:0] local_y;  //15 rows = 4 bits
-always_comb begin
-    text_active = (sx >= text_x_pos && (sx < text_x_pos + (BMAP_WIDTH << SCALE_BITS)) && sy >= text_y_pos && (sy < text_y_pos + (BMAP_HEIGHT << SCALE_BITS)));
-    local_x = (sx - text_x_pos) >> SCALE_BITS;
-    local_y = (sy - text_y_pos) >> SCALE_BITS;
-    picture = (de & text_active) ? bmap[local_y][local_x] : 1'b0;
-end
-*/
 colour_t paint_r, paint_g, paint_b;
 always_comb begin
     if (grid) {paint_r, paint_g, paint_b} = pixel_colour;
@@ -121,7 +123,6 @@ always_comb begin
     end
     else {paint_r, paint_g, paint_b} = 12'h00F;
 end
-//assign {paint_r, paint_g, paint_b} = (grid) ? pixel_colour : 12'h00F;
 
 //Consider blanking, no colour within blanking region
 colour_t display_r, display_g, display_b;

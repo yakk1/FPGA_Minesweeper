@@ -1,20 +1,20 @@
 // 12-bit RGB Color Palette (4 bits per channel: R G B)
 // Shared palette generated across 3 sprite sheets
 // 12 unique colors extracted
-FFF // Index  0: Original RGB(255,255,255)
-CCC // Index  1: Original RGB(192,192,192)
-888 // Index  2: Original RGB(128,128,128)
-F00 // Index  3: Original RGB(255,  0,  0)
-000 // Index  4: Original RGB(  0,  0,  0)
-00F // Index  5: Original RGB(  0,  0,255)
-080 // Index  6: Original RGB(  0,128,  0)
-008 // Index  7: Original RGB(  0,  0,128)
-800 // Index  8: Original RGB(128,  0,  0)
-088 // Index  9: Original RGB(  0,128,128)
-FF0 // Index 10: Original RGB(255,255,  0)
-880 // Index 11: Original RGB(128,128,  0)
-// Padded entries to initialize all 16 words of CLUT RAM
+FFF // Index  0: Original RGB(255,255,255) - White
+CCC // Index  1: Original RGB(192,192,192) - Light Gray
+888 // Index  2: Original RGB(128,128,128) - Gray
+F00 // Index  3: Original RGB(255,  0,  0) - Red
+000 // Index  4: Original RGB(  0,  0,  0) - Black
+00F // Index  5: Original RGB(  0,  0,255) - Blue
+080 // Index  6: Original RGB(  0,128,  0) - Green
+008 // Index  7: Original RGB(  0,  0,128) - Navy Blue
+800 // Index  8: Original RGB(128,  0,  0) - Maroon
+088 // Index  9: Original RGB(  0,128,128) - Teal
+FF0 // Index 10: Original RGB(255,255,  0) - Yellow
+880 // Index 11: Original RGB(128,128,  0) - Olive
+// Unused colours
 000 // Index 12: Padded (unused)
 000 // Index 13: Padded (unused)
 000 // Index 14: Padded (unused)
-000 // Index 15: Padded (unused)
+F0F // Index 15: Transparent Key - Magenta

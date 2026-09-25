@@ -3,18 +3,21 @@
 
 module sprite_rom 
 import minesweeper_pkg::*;
+#(
+    parameter SPRITE_W;
+    parameter SPRITE_H;
+    parameter N_SPRITES;
+    parameter ADDR_W;
+)
 (
     input logic clk,
-    input sprite_t sprite_id,
-    input logic [3:0] sprite_x,
-    input logic [3:0] sprite_y,
+    input logic [ADDR_W-1 : 0] addr, 
     output colour_t colour
 );
 
 //Each address stores one 4-bit colour index
-//The sprite ID represents the base address for the specific tile sprite
 
-colour_t rom [0:4095];
+colour_t rom [0:SPRITE_H*SPRITE_W*N_SPRITES-1];
 
 initial begin
     $readmemh("sprite_rom.mem", rom);
