@@ -4,8 +4,8 @@
 module top
 import minesweeper_pkg::*;
 (
-    input wire clk_125m,
-    input wire btn_rst,
+    input wire logic clk_125m,
+    input wire logic btn_rst,
     output logic [3:0] vga_r,
     output logic [3:0] vga_b,
     output logic [3:0] vga_g,
@@ -35,7 +35,9 @@ display_timer disp_gen (
     .sy(sy),   //Screen y position (vertical)
     .hsync(hsync),      //Horizontal sync
     .vsync(vsync),      //Vertical sync
-    .de(de)          //Data enable (low in blanking)
+    .de(de),          //Data enable (low in blanking)
+    .frame(),       
+    .line()
 );
 
 
@@ -44,7 +46,7 @@ display_timer disp_gen (
 //Lookup tile in advance, to account for BRAM read latencies
 localparam DISP_LATENCY = 3;
 
-tile_id_t read_tile;
+tile_t read_tile;
 screen_coord_t sx_board_adjusted;
 screen_coord_t sy_board_adjusted;
 logic grid;
@@ -57,7 +59,7 @@ assign grid = (sx >= GRID_OFFSET_X && sx < (TILE_WIDTH * BOARD_WIDTH + GRID_OFFS
 assign sx_board_adjusted = $signed(sx + DISP_LATENCY - GRID_OFFSET_X);
 assign sy_board_adjusted = $signed(sy - GRID_OFFSET_Y);
 
-// Instanciate board of tiles
+// Create board of tiles BRAM
 board board_memory (
     .clk_a(0),
     .we_a(0),
@@ -66,8 +68,8 @@ board board_memory (
     .din_a(0),
     .dout_a(),
     .clk_b(clk_pix),
-    .coord_x_b(sx_board_adjusted[8:4]),
-    .coord_y_b(sy_board_adjusted[8:4]),
+    .coord_x_b(sx_board_adjusted[4 +: $clog2(BOARD_WIDTH)]),
+    .coord_y_b(sy_board_adjusted[4 +: $clog2(BOARD_HEIGHT)]),
     .dout_b(read_tile)
 );
 
@@ -80,14 +82,14 @@ assign sprite_id = get_tile_sprite_id(read_tile);         //Combinationally calc
 assign sx_sprite_adjusted = sx + $signed(DISP_LATENCY - 1);
 
 //Sprite address equals spriteID * (16^2) + sprite y pos * 16 + x position
-assign sprite_address = {sprite_id, sy[3:0], sx_sprite_adjusted[3:0]};
+assign sprite_address = {sprite_id, sy_board_adjusted[3:0], sx_sprite_adjusted[3:0]};
 
 //Instanciate tile sprite ROM
 sprite_rom #(
     .SPRITE_W(TILE_WIDTH),
     .SPRITE_H(TILE_HEIGHT),
-    .N_SPRITES(N_TILES),
-    .ADDR_W(12)
+    .N_SPRITES(N_TILE_SPRITES),
+    .ADDR_W($clog2(N_TILE_SPRITES*TILE_HEIGHT*TILE_WIDTH))
 )
 tile_sprite_memory (
     .clk(clk_pix),

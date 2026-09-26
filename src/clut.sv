@@ -1,14 +1,16 @@
+`timescale 1ns / 1ps
+`default_nettype none
 
 module clut #(
     parameter COLOUR_W = 12,
     parameter COLOUR_IDX_W = 4,
     parameter COLOUR_FILE = "palette_rom.mem"
 ) ( 
-    input logic clk,                           //Input clock
-    input logic [COLOUR_IDX_W-1:0] r_addr,     //Read address
-    input logic [COLOUR_IDX_W-1:0] w_addr,     //Write address
-    input logic [COLOUR_W-1:0] w_value,        //Write value
-    input logic we,                            //Write enable (high means write)
+    input wire logic clk,                           //Input clock
+    input wire logic [COLOUR_IDX_W-1:0] r_addr,     //Read address
+    input wire logic [COLOUR_IDX_W-1:0] w_addr,     //Write address
+    input wire logic [COLOUR_W-1:0] w_value,        //Write value
+    input wire logic we,                            //Write enable (high means write)
     output logic [COLOUR_W-1:0] dout           //Read value
 );
 

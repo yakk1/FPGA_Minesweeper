@@ -1,3 +1,6 @@
+`timescale 1ns / 1ps
+`default_nettype none
+
 package minesweeper_pkg;
 
 typedef struct packed {
@@ -9,9 +12,12 @@ typedef struct packed {
     logic clicked;          //Clicked tile (to determine if the bomb was clicked)
 } tile_t;
 
+// Board definition
 localparam int BOARD_HEIGHT = 16;   //Can be any number
 localparam int BOARD_WIDTH = 8;    //Keep as power of 2
+localparam int N_TILES = BOARD_HEIGHT*BOARD_WIDTH;
 
+// Coordinate definitions
 typedef logic [$clog2(BOARD_WIDTH)-1:0] gridx_coord_t; 
 typedef logic [$clog2(BOARD_HEIGHT)-1:0] gridy_coord_t;
 
@@ -21,26 +27,26 @@ typedef logic signed [10:0] screen_coord_t;
 // Tiles Definitions
 localparam int TILE_WIDTH = 16;
 localparam int TILE_HEIGHT = 16;
-localparam int N_TILES = 14;
+localparam int N_TILE_SPRITES = 14;
 typedef logic [3:0] tile_id_t;
 
 // Face Definitions
 localparam int FACE_WIDTH = 24;
 localparam int FACE_HEIGHT = 24;
-localparam int N_FACES = 5;
+localparam int N_FACES_SPRITES = 5;
 typedef logic [1:0] face_id_t; 
 
 // LCD Number Definitions
 localparam int NUM_WIDTH = 13;
 localparam int NUM_HEIGHT = 23;
-localparam int N_NUMS = 12;
+localparam int N_NUMS_SPRITES = 12;
 typedef logic [3:0] digit_id_t;
 
 typedef logic [11:0] lcd_count_t; //BCD encoded 
 
 // Setup grid offset
 localparam int GRID_OFFSET_X = (640 - BOARD_WIDTH*TILE_WIDTH)/2;       // Grid is horizontlly in screen center 
-localparam int GRID_OFFSET_Y = (480 - BOARD_HEIGHT*TILE_HEIGHT)/2 + 50 // Not in the center (due to the face)
+localparam int GRID_OFFSET_Y = (480 - BOARD_HEIGHT*TILE_HEIGHT)/2 + 50; // Not in the center (due to the face)
 
 // Setup face button offset
 localparam int FACE_OFFSET_FROM_GRID = 50;                             // Number of pixels above top of grid
@@ -76,7 +82,7 @@ endfunction
 function automatic digit_id_t get_digit_sprite_id(input logic [3:0] nibble);
     digit_id_t out = nibble;
     
-    if (nibble = 4'hD) out = 4'd10;
+    if (nibble == 4'hD) out = 4'd10;
 
     return out;
 endfunction

@@ -1,3 +1,6 @@
+`timescale 1ns / 1ps
+`default_nettype none
+
 //Display timing generator module
 
 module display_timer #(
@@ -13,8 +16,8 @@ module display_timer #(
     parameter H_POL = 0,       // Horizontal sync polarity (0 = negative, 1 = positive)
     parameter V_POL = 0       //  vertical sync polarity (0 = negative, 1 = positive)
 ) (
-    input logic clk_pix,    // Pixel Clock
-    input logic rst_pix,    // Reset in pixel clock domain
+    input wire logic clk_pix,    // Pixel Clock
+    input wire logic rst_pix,    // Reset in pixel clock domain
     output logic hsync,     // Horizontal sync
     output logic vsync,     // Vertical sync
     output logic de,        // Data enable, low in blanking interval
