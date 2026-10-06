@@ -46,7 +46,7 @@ initial begin
     mem[5] = 9'b010100010;
     mem[6] = 9'b011000010;
     mem[7] = 9'b011100010;
-    mem[8] = 9'b100000010;
+    //mem[8] = 9'b100000010;
 end
 
 //Calculate memory addresses from coordinates. Note board width is a power of 2

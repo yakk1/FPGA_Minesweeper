@@ -6,13 +6,18 @@ import minesweeper_pkg::*;
 (
     input wire logic clk_125m,
     input wire logic btn_rst,
+    input wire logic btn_left,
+    input wire logic btn_right,
+    input wire logic Vaux1_0_v_p,
+    input wire logic Vaux1_0_v_n,
+    input wire logic Vaux9_0_v_p,
+    input wire logic Vaux9_0_v_n,
     output logic [3:0] vga_r,
     output logic [3:0] vga_b,
     output logic [3:0] vga_g,
     output logic vga_hsync,
     output logic vga_vsync
 );
-    
     
 //Instanciate clock wizard IP to generate 25.2 MHz pixel clock
 logic clk_pix;
@@ -25,123 +30,128 @@ clk_wiz_0 pixel_clock_generator
     .clk_in1(clk_125m) 
 );
 
-//Instanciate display signal generator
-screen_coord_t sx, sy;
-logic hsync, vsync, de; 
-display_timer disp_gen (
-    .clk_pix(clk_pix),    //Pixel clock
-    .rst_pix(!clk_pix_locked),    //Reset in pixel clock domain
-    .sx(sx),   //Screen x position (horizontal)
-    .sy(sy),   //Screen y position (vertical)
-    .hsync(hsync),      //Horizontal sync
-    .vsync(vsync),      //Vertical sync
-    .de(de),          //Data enable (low in blanking)
-    .frame(),       
-    .line()
+//TODO: 2FF synchroniser for clk_pix_locked
+
+databus_t game_state_fast;
+logic start;
+//Mouse controller
+mouse_controller Mouse
+(
+    .clk_125m(clk_125m),
+    .rst(btn_rst),
+    .mouse_btn_left(btn_left),
+    .mouse_btn_right(btn_right),
+    .Vaux1_0_v_p(Vaux1_0_v_p),
+    .Vaux1_0_v_n(Vaux1_0_v_n),
+    .Vaux9_0_v_p(Vaux9_0_v_p),
+    .Vaux9_0_v_n(Vaux9_0_v_n),
+
+    .btn_debounce_left(start),
+    .btn_debounce_right(),
+    .mouse_x(game_state_fast.mouse_x),
+    .mouse_y(game_state_fast.mouse_y)
 );
 
+game_timer Timer
+(
+    .clk(clk_125m),
+    .rst(!clk_pix_locked),
+    .timer(game_state_fast.right_count_value)
+);
 
-//Read tile from BRAM
-//We must divide the coordinate by 16 (remove lower 4 bits)
-//Lookup tile in advance, to account for BRAM read latencies
-localparam DISP_LATENCY = 3;
+// Cross logic and display clock domains
+//assign game_state_fast.mouse_x = 100;
+//assign game_state_fast.mouse_y = 150;
+assign game_state_fast.face_id = 2;
+//assign game_state_fast.left_count_value = 12'b0001_0000_0001;
+//assign game_state_fast.right_count_value = 12'b0001_0001_0011;
+assign game_state_fast.show_mines = 1'b1;
 
+
+gridx_coord_t start_x, start_y, coord_x_a, coord_y_a;
+tile_t tile_r_a, tile_w_a;
+logic we_a;
+
+assign start_x = '0;
+assign start_y = '0;
+
+setup_game u_setup_game (
+    .clk        (clk_125m),
+    .rst        (btn_rst),
+    .start      (start),
+
+    .start_x    (start_x),
+    .start_y    (start_y),
+
+    .busy       (),
+    .done       (),
+    .mine_count (game_state_fast.left_count_value),
+
+    // BRAM Interface
+    .we_a       (we_a),
+    .coord_x_a  (coord_x_a),
+    .coord_y_a  (coord_y_a),
+    .tile_r_a   (tile_r_a),
+    .tile_w_a   (tile_w_a)
+);
+
+logic frame;
+databus_t game_state_pix;
+
+game_state_cdc Game_state_cdc
+(
+    //Fast clock domain
+    .clk_125m(clk_125m),
+    .rst_fast(btn_rst),
+    .state_valid(1'b1),
+    .state_in(game_state_fast),
+
+    //Slow clock domain
+    .clk_pix(clk_pix),
+    .rst_pix(!clk_pix_locked),
+    .frame(frame),
+    .state_out(game_state_pix)
+);
+
+// Board state BRAM
+gridx_coord_t sx_board;
+gridy_coord_t sy_board;
 tile_t read_tile;
-screen_coord_t sx_board_adjusted;
-screen_coord_t sy_board_adjusted;
-logic grid;
 
-// Calculate relative board position, determine if current coordinates renders a grid
-// May be flag later for controller (master renderer)
-assign grid = (sx >= GRID_OFFSET_X && sx < (TILE_WIDTH * BOARD_WIDTH + GRID_OFFSET_X) && sy >= GRID_OFFSET_Y && sy < (TILE_HEIGHT * BOARD_HEIGHT + GRID_OFFSET_Y));  
-
-// Calculate relative board coordinates, lookup x in advance due to BRAM read latency
-assign sx_board_adjusted = $signed(sx + DISP_LATENCY - GRID_OFFSET_X);
-assign sy_board_adjusted = $signed(sy - GRID_OFFSET_Y);
-
-// Create board of tiles BRAM
 board board_memory (
-    .clk_a(0),
-    .we_a(0),
-    .coord_x_a(0),
-    .coord_y_a(0),
-    .din_a(0),
-    .dout_a(),
+    .clk_a(clk_125m),
+    .we_a(we_a),
+    .coord_x_a(coord_x_a),
+    .coord_y_a(coord_y_a),
+    .din_a(tile_w_a),
+    .dout_a(tile_r_a),
     .clk_b(clk_pix),
-    .coord_x_b(sx_board_adjusted[4 +: $clog2(BOARD_WIDTH)]),
-    .coord_y_b(sy_board_adjusted[4 +: $clog2(BOARD_HEIGHT)]),
+    .coord_x_b(sx_board),
+    .coord_y_b(sy_board),
     .dout_b(read_tile)
 );
 
-screen_coord_t sx_sprite_adjusted;
-logic [11:0] sprite_address;
-colour_t out_colour;
-tile_id_t sprite_id;
+// Render Game
+renderer Renderer (
+    .clk_pix(clk_pix),
+    .clk_pix_locked(clk_pix_locked),
+    .btn_rst(btn_rst),
+    
+    // Game state controls
+    .game_state(game_state_pix),
 
-assign sprite_id = get_tile_sprite_id(read_tile);         //Combinationally calculate tile sprite ID
-assign sx_sprite_adjusted = sx + $signed(DISP_LATENCY - 1);
+    // Board BRAM interface (read only)
+    .sx_board(sx_board),
+    .sy_board(sy_board),
+    .read_tile(read_tile),
 
-//Sprite address equals spriteID * (16^2) + sprite y pos * 16 + x position
-assign sprite_address = {sprite_id, sy_board_adjusted[3:0], sx_sprite_adjusted[3:0]};
-
-//Instanciate tile sprite ROM
-sprite_rom #(
-    .SPRITE_W(TILE_WIDTH),
-    .SPRITE_H(TILE_HEIGHT),
-    .N_SPRITES(N_TILE_SPRITES),
-    .ADDR_W($clog2(N_TILE_SPRITES*TILE_HEIGHT*TILE_WIDTH))
-)
-tile_sprite_memory (
-    .clk(clk_pix),
-    .addr(sprite_address),
-    .colour(out_colour)
+    // VGA control signals
+    .vga_r(vga_r),
+    .vga_b(vga_b),
+    .vga_g(vga_g),
+    .vga_hsync(vga_hsync),
+    .vga_vsync(vga_vsync),
+    .frame(frame)
 );
-
-//Paint colour
-//Flags
-//Grid - on the grid (use grid colour)
-//Face - on the face (use face colour)
-//Background - use background colour
-//Mouse - use mouse colour
-//Priority encoder - highest priority first (where transparent render the second most )
-
-logic [11:0] pixel_colour;
-
-clut clut_table ( 
-    .clk(clk_pix),                           
-    .r_addr(out_colour), 
-    .w_addr(0), 
-    .w_value(0),   
-    .we(0),        
-    .dout(pixel_colour)   
-);
-
-colour_t paint_r, paint_g, paint_b;
-always_comb begin
-    if (grid) {paint_r, paint_g, paint_b} = pixel_colour;
-    else if (sy >= 0 && sy <= 50) begin
-        if (sx >= 0 && sx <= 200)  {paint_r, paint_g, paint_b} = 12'hF00;
-        else {paint_r, paint_g, paint_b} = 12'h0F0;
-    end
-    else {paint_r, paint_g, paint_b} = 12'h00F;
-end
-
-//Consider blanking, no colour within blanking region
-colour_t display_r, display_g, display_b;
-always_comb begin
-    display_r = (de) ? paint_r : 4'h0;
-    display_g = (de) ? paint_g : 4'h0;
-    display_b = (de) ? paint_b : 4'h0;
-end
-
-//Register to VGA output
-always_ff @(posedge clk_pix) begin
-    vga_r <= display_r;
-    vga_b <= display_b;
-    vga_g <= display_g;
-    vga_hsync <= hsync;
-    vga_vsync <= vsync;
-end
 
 endmodule
-

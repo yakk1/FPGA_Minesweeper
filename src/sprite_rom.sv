@@ -10,7 +10,8 @@ import minesweeper_pkg::*;
     parameter SPRITE_W,
     parameter SPRITE_H,
     parameter N_SPRITES,
-    parameter ADDR_W
+    parameter ADDR_W,
+    parameter MEM_FILE = ""
 )
 (
     input wire logic clk,
@@ -23,7 +24,11 @@ import minesweeper_pkg::*;
 colour_t rom [0:SPRITE_H*SPRITE_W*N_SPRITES-1];
 
 initial begin
-    $readmemh("./mem/tiles_sprite.mem", rom);
+    if (MEM_FILE != "") begin
+        $readmemh(MEM_FILE, rom);
+    end else begin
+        $error("Empty Filename!");
+    end
 end
 
 always_ff @(posedge clk) begin

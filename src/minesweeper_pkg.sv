@@ -12,9 +12,14 @@ typedef struct packed {
     logic clicked;          //Clicked tile (to determine if the bomb was clicked)
 } tile_t;
 
+// Game Definition
+localparam logic [3:0] BACKGROUND_COLOUR = 4'h4;
+localparam int SCREEN_WIDTH = 640;
+localparam int SCREEN_HEIGHT = 480;
+
 // Board definition
 localparam int BOARD_HEIGHT = 16;   //Can be any number
-localparam int BOARD_WIDTH = 8;    //Keep as power of 2
+localparam int BOARD_WIDTH = 32;    //Keep as power of 2
 localparam int N_TILES = BOARD_HEIGHT*BOARD_WIDTH;
 
 // Coordinate definitions
@@ -23,6 +28,7 @@ typedef logic [$clog2(BOARD_HEIGHT)-1:0] gridy_coord_t;
 
 typedef logic [3:0] colour_t;
 typedef logic signed [10:0] screen_coord_t;
+//typedef logic [9:0] u_screen_cord_t;
 
 // Tiles Definitions
 localparam int TILE_WIDTH = 16;
@@ -34,13 +40,17 @@ typedef logic [3:0] tile_id_t;
 localparam int FACE_WIDTH = 24;
 localparam int FACE_HEIGHT = 24;
 localparam int N_FACES_SPRITES = 5;
-typedef logic [1:0] face_id_t; 
+typedef logic [2:0] face_id_t; 
 
 // LCD Number Definitions
 localparam int NUM_WIDTH = 13;
 localparam int NUM_HEIGHT = 23;
 localparam int N_NUMS_SPRITES = 12;
 typedef logic [3:0] digit_id_t;
+
+// Mouse Definitions
+localparam int MOUSE_WIDTH = 32;
+localparam int MOUSE_HEIGHT = 32;
 
 typedef logic [11:0] lcd_count_t; //BCD encoded 
 
@@ -56,24 +66,44 @@ localparam int FACE_OFFSET_Y = GRID_OFFSET_Y - FACE_OFFSET_FROM_GRID;
 // Setup 3 digit display offsets (note there are two)
 localparam int DIGIT_OFFSET_Y = FACE_OFFSET_Y;
 localparam int DIGIT1_OFFSET_X = GRID_OFFSET_X + TILE_WIDTH/2;
-localparam int DIGIT2_OFFSET_X = GRID_OFFSET_X + (BOARD_WIDTH * TILE_WIDTH) - TILE_WIDTH/2;
+localparam int DIGIT2_OFFSET_X = GRID_OFFSET_X + (BOARD_WIDTH * TILE_WIDTH) - TILE_WIDTH/2 - 3*NUM_WIDTH;
+
+// Game flags and control data bus
+typedef struct packed {
+    screen_coord_t mouse_x;
+    screen_coord_t mouse_y;
+    face_id_t face_id;
+    lcd_count_t left_count_value;
+    lcd_count_t right_count_value;
+    logic show_mines;
+} databus_t;
 
 //This function decodes the tile into the sprite ID, to display the correct tile type
 //Takes a tile as an argument, returns the ID of the sprite (sprite base address)
-function automatic tile_id_t get_tile_sprite_id(input tile_t tile);
-    if (~tile.is_open) begin
-        if (tile.flag) begin
-            return 4'd1;        //Return flag tile
+localparam logic DEBUG_OPEN_ALL = 1'b1;
+
+function automatic tile_id_t get_tile_sprite_id(input tile_t tile, input logic show_mines);
+    if (~(tile.is_open | DEBUG_OPEN_ALL)) begin
+        if (show_mines) begin
+            if (tile.is_mine) begin
+                if (tile.clicked) return 4'd3;      //Clicked mine (red exploded mine)
+                else if (tile.flag) return 4'd1;    //Correctly flagged mine stays a flag
+                else return 4'd2;                   //Unflagged mine is revealed
+            end else begin
+                if (tile.flag) return 4'd4;         //Incorrect flag (crossed-out mine)
+                else return 4'd0;                   //Unopened safe tile stays closed
+            end
         end else begin
-            return 4'd0;        //Return closed tile
+            if (tile.flag) return 4'd1;             //Return flag tile
+            else return 4'd0;                       //Return closed tile
         end
     end else begin
         if (tile.is_mine) begin
-            if (tile.clicked) return 4'd3;      //If clicked then this mine exploded
-            else return 4'd2;                   //Otherwise standard mine
+            if (tile.clicked) return 4'd3;          //If clicked then this mine exploded
+            else return 4'd2;                       //Otherwise standard mine
         end else begin
-            if (tile.flag) return 4'd4;         //A tile can only be opened AND a flag at the end of the game. This is an incorrect flag 
-            else return (4'd5 + tile.value);      //Return number. tile.value = 0 is a blank (0) tile
+            if (tile.flag) return 4'd4;             //Incorrect flag if tile was opened
+            else return (4'd5 + tile.value);        //Return number. tile.value = 0 is a blank (0) tile
         end
     end
 endfunction

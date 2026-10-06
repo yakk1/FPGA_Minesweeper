@@ -4,7 +4,7 @@
 module clut #(
     parameter COLOUR_W = 12,
     parameter COLOUR_IDX_W = 4,
-    parameter COLOUR_FILE = "palette_rom.mem"
+    parameter COLOUR_FILE = ""
 ) ( 
     input wire logic clk,                           //Input clock
     input wire logic [COLOUR_IDX_W-1:0] r_addr,     //Read address

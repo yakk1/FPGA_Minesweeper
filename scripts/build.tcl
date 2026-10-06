@@ -9,8 +9,11 @@ create_project -force $project_name $build_dir -part xc7z020clg400-1
 # Source files
 add_files [glob ../src/*.sv]
 
+# Mem Files
+add_files [glob ../src/mem/*.mem]
+
 # IP files (.xci files)
-add_files [glob ../ip/*.xci]
+add_files [glob ../ip/**/*.xci]
 
 # Constraints
 add_files -fileset constrs_1 [glob ../constraints/*.xdc]

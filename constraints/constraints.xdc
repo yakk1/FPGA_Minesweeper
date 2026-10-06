@@ -29,9 +29,9 @@ set_clock_groups -asynchronous -group [get_clocks sys_clk_pin] -group [get_clock
 ## Buttons
 set_property -dict { PACKAGE_PIN D19    IOSTANDARD LVCMOS33 } [get_ports { btn_rst }]; #IO_L4P_T0_35 Sch=BTN0
 set_false_path -from [get_ports btn_rst] #Ignore delay
-#set_property -dict { PACKAGE_PIN D20    IOSTANDARD LVCMOS33 } [get_ports { btn[1] }]; #IO_L4N_T0_35 Sch=BTN1
-#set_property -dict { PACKAGE_PIN L20    IOSTANDARD LVCMOS33 } [get_ports { btn[2] }]; #IO_L9N_T1_DQS_AD3N_35 Sch=BTN2
-#set_property -dict { PACKAGE_PIN L19    IOSTANDARD LVCMOS33 } [get_ports { btn[3] }]; #IO_L9P_T1_DQS_AD3P_35 Sch=BTN3
+#set_property -dict { PACKAGE_PIN D20    IOSTANDARD LVCMOS33 } [get_ports { btn_1 }]; #IO_L4N_T0_35 Sch=BTN1
+set_property -dict { PACKAGE_PIN L20    IOSTANDARD LVCMOS33 } [get_ports { btn_right }]; #IO_L9N_T1_DQS_AD3N_35 Sch=BTN2
+set_property -dict { PACKAGE_PIN L19    IOSTANDARD LVCMOS33 } [get_ports { btn_left }]; #IO_L9P_T1_DQS_AD3P_35 Sch=BTN3
 
 ## VGA Pmod on Header JA/JB for Arty Z7-20
 ## Red and Blue on JA
