@@ -19,7 +19,34 @@ import minesweeper_pkg::*;
     output logic vga_vsync
 );
     
-//Instanciate clock wizard IP to generate 25.2 MHz pixel clock
+
+databus_t game_state_fast;
+logic start;
+
+logic left_click;
+logic right_click;
+
+
+logic face_clicked;
+logic tile_clicked;
+gridx_coord_t tile_x, coord_x_a;
+gridy_coord_t tile_y, coord_y_a;
+tile_t tile_r_a, tile_w_a;
+logic we_a;
+
+logic frame;
+databus_t game_state_pix;
+
+
+logic timer_reset, stop_timer;
+
+
+// Board state BRAM
+gridx_coord_t sx_board;
+gridy_coord_t sy_board;
+tile_t read_tile;
+
+// Instanciate clock wizard IP to generate 25.2 MHz pixel clock
 logic clk_pix;
 logic clk_pix_locked;
 clk_wiz_0 pixel_clock_generator
@@ -30,10 +57,19 @@ clk_wiz_0 pixel_clock_generator
     .clk_in1(clk_125m) 
 );
 
-//TODO: 2FF synchroniser for clk_pix_locked
+// 2FF synchronizer for clk_pix_locked
+logic locked_sync_1, locked_sync_2;
+logic rst_pix; // Synchronized active-high reset for the pixel clock domain
 
-databus_t game_state_fast;
-logic start;
+always_ff @(posedge clk_pix) begin
+    // If the clock is unstable or the user presses btn_rst, this pulls low
+    locked_sync_1 <= clk_pix_locked;
+    locked_sync_2 <= locked_sync_1;
+end
+
+// Invert so that a loss of lock becomes an active reset
+assign rst_pix = ~locked_sync_2;
+
 //Mouse controller
 mouse_controller Mouse
 (
@@ -46,77 +82,81 @@ mouse_controller Mouse
     .Vaux9_0_v_p(Vaux9_0_v_p),
     .Vaux9_0_v_n(Vaux9_0_v_n),
 
-    .btn_debounce_left(start),
-    .btn_debounce_right(),
+    .btn_debounce_left(left_click),
+    .btn_debounce_right(right_click),
     .mouse_x(game_state_fast.mouse_x),
     .mouse_y(game_state_fast.mouse_y)
+);
+
+button_decoder u_button_decoder (
+    // Mouse click inputs
+    .left_click   (left_click),
+    .right_click  (right_click),
+
+    // Mouse coordinate inputs
+    .mouse_x      (game_state_fast.mouse_x),
+    .mouse_y      (game_state_fast.mouse_y),
+    
+    // Decoded button outputs
+    .face_clicked (face_clicked),
+    .tile_clicked (tile_clicked),
+    .tile_x       (tile_x),
+    .tile_y       (tile_y)
+);
+
+game_controller #(
+    .N_MINES      (N_MINES)
+) u_game_controller (
+    .clk          (clk_125m),
+    .rst          (btn_rst),
+
+    // Button interface
+    .face_clicked (face_clicked),
+    .tile_clicked (tile_clicked),
+    .tile_x       (tile_x),
+    .tile_y       (tile_y),
+    .left_click   (left_click),
+    .right_click  (right_click),
+
+    // Game state outputs
+    .flag_disp    (game_state_fast.left_count_value),
+    .show_mines   (game_state_fast.show_mines),
+    .face_id      (game_state_fast.face_id),
+    .win          (game_state_fast.win),
+    // Control signals
+    .timer_reset  (timer_reset),
+    .stop_timer   (stop_timer),
+
+    // BRAM (board) interface
+    .we_a         (we_a),
+    .coord_x_a    (coord_x_a),
+    .coord_y_a    (coord_y_a),
+    .tile_r_a     (tile_r_a),
+    .tile_w_a     (tile_w_a)
 );
 
 game_timer Timer
 (
     .clk(clk_125m),
-    .rst(!clk_pix_locked),
+    .rst(timer_reset),
+    .stop_timer(stop_timer),
     .timer(game_state_fast.right_count_value)
 );
 
-// Cross logic and display clock domains
-//assign game_state_fast.mouse_x = 100;
-//assign game_state_fast.mouse_y = 150;
-assign game_state_fast.face_id = 2;
-//assign game_state_fast.left_count_value = 12'b0001_0000_0001;
-//assign game_state_fast.right_count_value = 12'b0001_0001_0011;
-assign game_state_fast.show_mines = 1'b1;
-
-
-gridx_coord_t start_x, start_y, coord_x_a, coord_y_a;
-tile_t tile_r_a, tile_w_a;
-logic we_a;
-
-assign start_x = '0;
-assign start_y = '0;
-
-setup_game u_setup_game (
-    .clk        (clk_125m),
-    .rst        (btn_rst),
-    .start      (start),
-
-    .start_x    (start_x),
-    .start_y    (start_y),
-
-    .busy       (),
-    .done       (),
-    .mine_count (game_state_fast.left_count_value),
-
-    // BRAM Interface
-    .we_a       (we_a),
-    .coord_x_a  (coord_x_a),
-    .coord_y_a  (coord_y_a),
-    .tile_r_a   (tile_r_a),
-    .tile_w_a   (tile_w_a)
-);
-
-logic frame;
-databus_t game_state_pix;
-
 game_state_cdc Game_state_cdc
 (
-    //Fast clock domain
+    // Fast clock domain
     .clk_125m(clk_125m),
     .rst_fast(btn_rst),
     .state_valid(1'b1),
     .state_in(game_state_fast),
 
-    //Slow clock domain
+    // Slow clock domain
     .clk_pix(clk_pix),
-    .rst_pix(!clk_pix_locked),
+    .rst_pix(rst_pix),
     .frame(frame),
     .state_out(game_state_pix)
 );
-
-// Board state BRAM
-gridx_coord_t sx_board;
-gridy_coord_t sy_board;
-tile_t read_tile;
 
 board board_memory (
     .clk_a(clk_125m),
@@ -134,8 +174,8 @@ board board_memory (
 // Render Game
 renderer Renderer (
     .clk_pix(clk_pix),
-    .clk_pix_locked(clk_pix_locked),
-    .btn_rst(btn_rst),
+    .clk_pix_locked(locked_sync_2),
+    .btn_rst(rst_pix),
     
     // Game state controls
     .game_state(game_state_pix),

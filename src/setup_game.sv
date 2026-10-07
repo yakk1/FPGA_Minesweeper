@@ -21,7 +21,7 @@ import minesweeper_pkg::*;
     output logic we_a,
     output gridx_coord_t coord_x_a,
     output gridy_coord_t coord_y_a,
-    input tile_t tile_r_a,
+    input wire tile_t tile_r_a,
     output tile_t tile_w_a
 );
 
@@ -45,7 +45,7 @@ lfsr LFSR
 // State machine states
 typedef enum logic [3:0] {
     IDLE,
-    CLEAR_BOARD,
+    //CLEAR_BOARD,
     PICK_COORD,
     WAIT_TILE,
     PLACE,
@@ -106,11 +106,12 @@ always_ff @(posedge clk) begin
                     mine_count <= '0;
                     sel_x <= '0;
                     sel_y <= '0;
-                    state <= CLEAR_BOARD;
+                    //state <= CLEAR_BOARD;
+                    state <= PICK_COORD;
                 end
             end
 
-            CLEAR_BOARD: begin
+            /*CLEAR_BOARD: begin
                 // Write empty tile to board
                 we_a <= 1'b1;
                 coord_x_a <= sel_x;
@@ -126,7 +127,7 @@ always_ff @(posedge clk) begin
                 end else begin
                     sel_x <= sel_x + 1'b1;
                 end
-            end
+            end*/
 
             PICK_COORD: begin
                 // Pick a new coordinate if it is the start coordinate

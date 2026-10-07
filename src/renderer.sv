@@ -73,7 +73,7 @@ logic [11:0] sprite_address;
 colour_t tile_colour;
 tile_id_t sprite_id;
 
-assign sprite_id = get_tile_sprite_id(read_tile, game_state.show_mines);         //Combinationally calculate tile sprite ID
+assign sprite_id = get_tile_sprite_id(.tile(read_tile), .show_mines(game_state.show_mines), .win(game_state.win));         //Combinationally calculate tile sprite ID
 assign sx_sprite_adjusted = sx + $signed(DISP_LATENCY - 1);
 
 //Sprite address equals spriteID * (16^2) + sprite y pos * 16 + x position

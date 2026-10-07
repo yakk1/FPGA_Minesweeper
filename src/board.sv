@@ -35,17 +35,17 @@ logic [ADDR_BITS-1:0] portb_addr;
 initial begin
 
     for (int i = 0; i < N_TILES; i++) begin
-        mem[i] = 9'b000001000;
+        mem[i] = 9'b000000000;
     end
     
-    mem[0] = 9'b000000010;
+    /*mem[0] = 9'b000000010;
     mem[1] = 9'b000100010;
     mem[2] = 9'b001000010;
     mem[3] = 9'b001100010;
     mem[4] = 9'b010000010;
     mem[5] = 9'b010100010;
     mem[6] = 9'b011000010;
-    mem[7] = 9'b011100010;
+    mem[7] = 9'b011100010;*/
     //mem[8] = 9'b100000010;
 end
 

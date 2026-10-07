@@ -72,8 +72,9 @@ always_ff @(posedge clk_125m) begin
         state <= INIT;
         init_counter <= 8'd0;
         den_in <= 1'b0;
-        joy_x <= 12'd0;
-        joy_y <= 12'd0; 
+        joy_x <= '0;
+        joy_y <= '0; 
+        daddr_in <= '0;
     end else begin
         den_in <= 1'b0;    // Default 0 (only meant to pulse for one clock cycle)
         case (state) 

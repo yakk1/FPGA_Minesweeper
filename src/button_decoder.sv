@@ -16,13 +16,16 @@ import minesweeper_pkg::*;
 );
 
 logic mouse_click;
+screen_coord_t mouse_x_adjusted, mouse_y_adjusted;
 
 always_comb begin
     mouse_click = left_click || right_click;
     face_clicked = (mouse_click) && (mouse_x >= FACE_OFFSET_X && mouse_x < (FACE_OFFSET_X + FACE_WIDTH) && mouse_y >= FACE_OFFSET_Y && mouse_y < (FACE_OFFSET_Y + FACE_HEIGHT));  
     tile_clicked = (mouse_click) && (mouse_x >= GRID_OFFSET_X && mouse_x < (TILE_WIDTH * BOARD_WIDTH + GRID_OFFSET_X) && mouse_y >= GRID_OFFSET_Y && mouse_y < (TILE_HEIGHT * BOARD_HEIGHT + GRID_OFFSET_Y));
-    tile_x = mouse_x[4 +: $clog2(BOARD_WIDTH)];
-    tile_y = mouse_y[4 +: $clog2(BOARD_HEIGHT)]; 
+    mouse_x_adjusted = mouse_x - GRID_OFFSET_X;
+    mouse_y_adjusted = mouse_y - GRID_OFFSET_Y;
+    tile_x = mouse_x_adjusted[4 +: $clog2(BOARD_WIDTH)];
+    tile_y = mouse_y_adjusted[4 +: $clog2(BOARD_HEIGHT)]; 
 end
 
 endmodule

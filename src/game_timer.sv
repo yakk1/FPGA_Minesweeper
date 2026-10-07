@@ -8,6 +8,7 @@ import minesweeper_pkg::*;
 (
     input wire logic clk,
     input wire logic rst,
+    input wire logic stop_timer,
     output lcd_count_t timer
 );
 
@@ -22,7 +23,7 @@ always_ff @(posedge clk) begin
         tick_counter <= '0;
         timer <= increment_count(timer);
     end else begin
-        tick_counter <= tick_counter + 1'b1;
+        if (!stop_timer) tick_counter <= tick_counter + 1'b1;
     end
 end
 

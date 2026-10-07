@@ -18,9 +18,10 @@ localparam int SCREEN_WIDTH = 640;
 localparam int SCREEN_HEIGHT = 480;
 
 // Board definition
-localparam int BOARD_HEIGHT = 16;   //Can be any number
-localparam int BOARD_WIDTH = 32;    //Keep as power of 2
+localparam int BOARD_HEIGHT = 8;   //Can be any number
+localparam int BOARD_WIDTH = 8;    //Keep as power of 2
 localparam int N_TILES = BOARD_HEIGHT*BOARD_WIDTH;
+localparam logic [12:0] N_MINES = 12'b0000_0001_0000; // Number of mines BCD
 
 // Coordinate definitions
 typedef logic [$clog2(BOARD_WIDTH)-1:0] gridx_coord_t; 
@@ -59,7 +60,7 @@ localparam int GRID_OFFSET_X = (640 - BOARD_WIDTH*TILE_WIDTH)/2;       // Grid i
 localparam int GRID_OFFSET_Y = (480 - BOARD_HEIGHT*TILE_HEIGHT)/2 + 50; // Not in the center (due to the face)
 
 // Setup face button offset
-localparam int FACE_OFFSET_FROM_GRID = 50;                             // Number of pixels above top of grid
+localparam int FACE_OFFSET_FROM_GRID = 32;                             // Number of pixels above top of grid
 localparam int FACE_OFFSET_X = (640 - FACE_WIDTH)/2;                    
 localparam int FACE_OFFSET_Y = GRID_OFFSET_Y - FACE_OFFSET_FROM_GRID;
 
@@ -76,13 +77,18 @@ typedef struct packed {
     lcd_count_t left_count_value;
     lcd_count_t right_count_value;
     logic show_mines;
+    logic win;
 } databus_t;
 
 //This function decodes the tile into the sprite ID, to display the correct tile type
 //Takes a tile as an argument, returns the ID of the sprite (sprite base address)
-localparam logic DEBUG_OPEN_ALL = 1'b1;
+localparam logic DEBUG_OPEN_ALL = 1'b0;
 
-function automatic tile_id_t get_tile_sprite_id(input tile_t tile, input logic show_mines);
+function automatic tile_id_t get_tile_sprite_id(
+    input tile_t tile, 
+    input logic show_mines,
+    input logic win
+    );
     if (~(tile.is_open | DEBUG_OPEN_ALL)) begin
         if (show_mines) begin
             if (tile.is_mine) begin
@@ -94,8 +100,9 @@ function automatic tile_id_t get_tile_sprite_id(input tile_t tile, input logic s
                 else return 4'd0;                   //Unopened safe tile stays closed
             end
         end else begin
-            if (tile.flag) return 4'd1;             //Return flag tile
-            else return 4'd0;                       //Return closed tile
+            // Normal gameplay or win state
+            if (tile.flag || (win && tile.is_mine)) return 4'd1;  //Return flag if manually flagged OR game is won
+            else return 4'd0;                                     //Return closed tile
         end
     end else begin
         if (tile.is_mine) begin
